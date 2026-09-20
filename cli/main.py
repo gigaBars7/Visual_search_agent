@@ -8,10 +8,11 @@ api_url = os.getenv("API_URL", "http://api:8000/test/relay")
 
 def send_message(message):
     try:
+        message = message.encode("utf-8", "surrogateescape").decode("utf-8", "replace")
         response = httpx.post(api_url, json={"message": message}, timeout=180.0)
         response.raise_for_status()
         return response.json()["answer"]
-    except httpx.HTTPError:
+    except (httpx.HTTPError, UnicodeError):
         return "API is unavailable."
 
 
