@@ -136,8 +136,7 @@ async def set_working_folder(request: WorkingFolderRequestScheme) -> dict[str, o
         }
 
     return {
-        "working_folder": working_folder,
-        "indexed": False,
+        "working_folder": working_folder
     }
 
 
