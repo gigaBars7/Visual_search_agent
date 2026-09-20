@@ -2,6 +2,7 @@ import asyncio
 import os
 import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -35,6 +36,29 @@ class AgentState(MessagesState):
 
 class AgentRequestScheme(BaseModel):
     message: str
+
+
+class WorkingFolderRequestScheme(BaseModel):
+    path: str = "."
+
+
+def resolve_working_folder(path):
+    photos_root = Path(os.getenv("PHOTOS_ROOT", "/photos")).resolve()
+    requested_path = Path(path)
+
+    if requested_path.is_absolute():
+        raise ValueError("Path must be relative to the photos root")
+
+    working_folder = (photos_root / requested_path).resolve()
+    try:
+        working_folder.relative_to(photos_root)
+    except ValueError as error:
+        raise ValueError("Path must be inside the photos root") from error
+
+    if not working_folder.is_dir():
+        raise ValueError("Folder does not exist")
+
+    return str(working_folder)
 
 
 def create_llm():
@@ -94,6 +118,27 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="Test Agent", lifespan=lifespan)
+
+
+@app.post("/working-folder")
+async def set_working_folder(request: WorkingFolderRequestScheme) -> dict[str, object]:
+    try:
+        working_folder = resolve_working_folder(request.path)
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
+    async with app.state.state_lock:
+        app.state.agent_state = {
+            **app.state.agent_state,
+            "working_folder": working_folder,
+            "collection_name": None,
+            "indexed": False,
+        }
+
+    return {
+        "working_folder": working_folder,
+        "indexed": False,
+    }
 
 
 @app.post("/test/action")

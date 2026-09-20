@@ -4,6 +4,9 @@ services:
     environment:
       LM_STUDIO_BASE_URL: http://host.docker.internal:1234/v1
       LM_STUDIO_MODEL: qwen/qwen3-vl-8b
+      PHOTOS_ROOT: /photos
+    volumes:
+      - ${PHOTO_ROOT:-${USERPROFILE}/Pictures}:/photos:ro
 
   api:
     build: ./api
