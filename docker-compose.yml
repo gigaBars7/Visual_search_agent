@@ -1,0 +1,21 @@
+services:
+  agent:
+    build: ./agent
+
+  api:
+    build: ./api
+    environment:
+      AGENT_URL: http://agent:8001/test/action
+    depends_on:
+      - agent
+    ports:
+      - "8000:8000"
+
+  cli:
+    build: ./cli
+    stdin_open: true
+    tty: true
+    environment:
+      API_URL: http://api:8000/test/relay
+    depends_on:
+      - api
