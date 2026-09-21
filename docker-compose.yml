@@ -8,7 +8,7 @@ services:
       LM_STUDIO_MODEL: qwen/qwen3-vl-8b
       PHOTOS_ROOT: /photos
     volumes:
-      - ${PHOTO_ROOT:-${USERPROFILE}/Pictures}:/photos:ro
+      - ${PHOTO_ROOT:?Run start.bat or set PHOTO_ROOT}:/photos:ro
 
   api:
     build: ./api
