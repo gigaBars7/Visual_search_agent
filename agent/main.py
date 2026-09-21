@@ -12,6 +12,8 @@ from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 from pydantic import BaseModel
 
+from model.loader import load_model
+
 
 SYSTEM_PROMPT = """
 """
@@ -96,6 +98,7 @@ def build_graph(llm, tools):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    app.state.model = load_model()
     client = MultiServerMCPClient(
         {
             "test_tools": {
