@@ -7,8 +7,17 @@ services:
       LM_STUDIO_BASE_URL: http://host.docker.internal:1234/v1
       LM_STUDIO_MODEL: qwen/qwen3-vl-8b
       PHOTOS_ROOT: /photos
+      QDRANT_URL: http://qdrant:6333
     volumes:
       - ${PHOTO_ROOT:?Run start.bat or set PHOTO_ROOT}:/photos:ro
+    depends_on:
+      qdrant:
+        condition: service_started
+
+  qdrant:
+    image: qdrant/qdrant:v1.19.1
+    volumes:
+      - qdrant_data:/qdrant/storage
 
   api:
     build: ./api
@@ -23,3 +32,6 @@ services:
     tty: true
     depends_on:
       - api
+
+volumes:
+  qdrant_data:
