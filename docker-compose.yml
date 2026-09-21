@@ -1,6 +1,8 @@
 services:
   agent:
-    build: ./agent
+    build:
+      context: .
+      dockerfile: agent/Dockerfile
     environment:
       LM_STUDIO_BASE_URL: http://host.docker.internal:1234/v1
       LM_STUDIO_MODEL: qwen/qwen3-vl-8b
