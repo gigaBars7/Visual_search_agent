@@ -15,8 +15,7 @@ from pydantic import BaseModel
 from model.loader import load_model
 
 
-SYSTEM_PROMPT = """
-"""
+SUPPORTED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"}
 
 SYSTEM_PROMPT = """
 Ты — агент, который отвечает только на основе результатов доступных tools.
@@ -61,6 +60,15 @@ def resolve_working_folder(path):
         raise ValueError("Folder does not exist")
 
     return str(working_folder)
+
+
+def list_images(state: AgentState):
+  working_folder = state["working_folder"]
+  return list(
+      path
+      for path in Path(working_folder).iterdir()
+      if path.is_file() and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
+  )
 
 
 def create_llm():
