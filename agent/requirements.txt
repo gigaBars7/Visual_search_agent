@@ -4,6 +4,7 @@ langchain-mcp-adapters==0.3.2
 langgraph==1.2.11
 mcp==1.27.2
 Pillow==11.3.0
+qdrant-client==1.19.1
 torch==2.7.1
 torchvision==0.22.1
 transformers==4.57.1

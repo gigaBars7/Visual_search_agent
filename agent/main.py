@@ -1,5 +1,6 @@
 import asyncio
 import os
+import re
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -11,6 +12,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 from pydantic import BaseModel
+from qdrant_client import models
 
 from model.loader import load_model
 
@@ -69,6 +71,24 @@ def list_images(state: AgentState):
       for path in Path(working_folder).iterdir()
       if path.is_file() and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
   )
+
+
+async def create_collection(state: AgentState, qdrant_client, embedding_dim):
+    working_folder = state["working_folder"]
+
+    collection_name = re.sub(
+        r"[^A-Za-z0-9_-]",
+        "_",
+        working_folder.strip("/").replace("/", "_"),
+    )
+    await qdrant_client.create_collection(
+        collection_name=collection_name,
+        vectors_config=models.VectorParams(
+            size=embedding_dim,
+            distance=models.Distance.COSINE,
+        ),
+    )
+    return collection_name
 
 
 def create_llm():
