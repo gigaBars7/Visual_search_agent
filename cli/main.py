@@ -1,9 +1,7 @@
-import os
-
 import httpx
 
 
-api_url = os.getenv("API_URL", "http://api:8000/test/relay")
+api_url = "http://api:8000/chat"
 working_folder_url = "http://api:8000/working-folder"
 
 

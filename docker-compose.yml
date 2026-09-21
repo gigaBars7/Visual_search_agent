@@ -19,7 +19,5 @@ services:
     build: ./cli
     stdin_open: true
     tty: true
-    environment:
-      API_URL: http://api:8000/test/relay
     depends_on:
       - api

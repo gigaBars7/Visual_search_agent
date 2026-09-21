@@ -17,8 +17,8 @@ class WorkingFolderRequestScheme(BaseModel):
     path: str = "."
 
 
-@app.post("/test/relay")
-async def relay_to_agent(request: ChatRequestScheme):
+@app.post("/chat")
+async def chat(request: ChatRequestScheme):
     try:
         async with httpx.AsyncClient(timeout=180.0) as client:
             response = await client.post(AGENT_URL, json={"message": request.message})
