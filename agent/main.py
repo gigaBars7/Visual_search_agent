@@ -140,8 +140,8 @@ async def set_working_folder(request: WorkingFolderRequestScheme) -> dict[str, o
     }
 
 
-@app.post("/test/action")
-async def test_action(request: AgentRequestScheme):
+@app.post("/invoke")
+async def invoke(request: AgentRequestScheme):
     async with app.state.state_lock:
         current_state = app.state.agent_state
         request_state = {

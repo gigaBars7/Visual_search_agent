@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
 
-AGENT_URL = "http://agent:8001/test/action"
+AGENT_URL = "http://agent:8001/invoke"
 AGENT_WORKING_FOLDER_URL = "http://agent:8001/working-folder"
 
 app = FastAPI(title="Test API")
