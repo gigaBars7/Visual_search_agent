@@ -97,6 +97,62 @@ async def create_collection(state: AgentState, qdrant_client, embedding_dim):
     return collection_name
 
 
+async def index_working_folder(
+    state: AgentState,
+    qdrant_client,
+    model,
+    embedding_dim,
+):
+    if state["working_folder"] is None:
+        return {
+            "success": False,
+            "collection_name": None,
+            "indexed": False,
+            "indexed_images_count": 0,
+            "error": "Working folder is not selected.",
+        }
+
+    image_paths = list_images(state)
+
+    if not image_paths:
+        return {
+            "success": False,
+            "collection_name": None,
+            "indexed": False,
+            "indexed_images_count": 0,
+            "error": "No supported images found in the current folder.",
+        }
+
+    points = [
+        models.PointStruct(
+            id=point_id,
+            vector=embed_image(image_path, model),
+            payload={"filename": image_path.name},
+        )
+        for point_id, image_path in enumerate(image_paths)
+    ]
+
+    collection_name = await create_collection(
+        state=state,
+        qdrant_client=qdrant_client,
+        embedding_dim=embedding_dim,
+    )
+
+    await qdrant_client.upsert(
+        collection_name=collection_name,
+        points=points,
+        wait=True,
+    )
+
+    return {
+        "success": True,
+        "collection_name": collection_name,
+        "indexed": True,
+        "indexed_images_count": len(points),
+        "error": None,
+    }
+
+
 def create_llm():
     return ChatOpenAI(
         model=os.getenv("LM_STUDIO_MODEL", "qwen/qwen3-vl-8b"),
