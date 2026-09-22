@@ -11,6 +11,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
+from PIL import Image
 from pydantic import BaseModel
 from qdrant_client import models
 
@@ -71,6 +72,11 @@ def list_images(state: AgentState):
       for path in Path(working_folder).iterdir()
       if path.is_file() and path.suffix.lower() in SUPPORTED_IMAGE_EXTENSIONS
   )
+
+
+def embed_image(image_path, model):
+    with Image.open(image_path) as image:
+        return model.encode_image(image).tolist()
 
 
 async def create_collection(state: AgentState, qdrant_client, embedding_dim):
