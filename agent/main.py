@@ -1,19 +1,23 @@
 import asyncio
+import json
 import os
 import re
 import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated
 
 from fastapi import FastAPI, HTTPException
-from langchain_core.messages import HumanMessage, SystemMessage
-from langchain_mcp_adapters.client import MultiServerMCPClient
+from langchain_core.messages import HumanMessage, SystemMessage, ToolMessage
+from langchain_core.tools import InjectedToolCallId, tool
+# from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, START, MessagesState, StateGraph
-from langgraph.prebuilt import ToolNode, tools_condition
+from langgraph.prebuilt import InjectedState, ToolNode, tools_condition
+from langgraph.types import Command
 from PIL import Image
 from pydantic import BaseModel
-from qdrant_client import models
+from qdrant_client import AsyncQdrantClient, models
 
 from model.loader import load_model
 
@@ -189,17 +193,49 @@ def build_graph(llm, tools):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     app.state.model = load_model()
-    client = MultiServerMCPClient(
-        {
-            "test_tools": {
-                "transport": "stdio",
-                "command": sys.executable,
-                "args": ["mcp_server.py"],
-            }
-        }
+    app.state.qdrant_client = AsyncQdrantClient(
+        url=os.getenv("QDRANT_URL", "http://qdrant:6333")
     )
-    tools = await client.get_tools()
-    app.state.graph = build_graph(create_llm(), tools)
+    embedding_dim = app.state.model.model.image_encoder.projection.out_features
+
+    # client = MultiServerMCPClient(
+    #     {
+    #         "test_tools": {
+    #             "transport": "stdio",
+    #             "command": sys.executable,
+    #             "args": ["mcp_server.py"],
+    #         }
+    #     }
+    # )
+    # tools = await client.get_tools()
+
+    @tool
+    async def index_folder(
+        state: Annotated[AgentState, InjectedState],
+        tool_call_id: Annotated[str, InjectedToolCallId],
+    ) -> Command:
+        """Индексирует изображения текущей рабочей директории"""
+        result = await index_working_folder(
+            state=state,
+            qdrant_client=app.state.qdrant_client,
+            model=app.state.model,
+            embedding_dim=embedding_dim,
+        )
+
+        return Command(
+            update={
+                "collection_name": result["collection_name"],
+                "indexed": result["indexed"],
+                "messages": [
+                    ToolMessage(
+                        content=json.dumps(result),
+                        tool_call_id=tool_call_id,
+                    )
+                ],
+            }
+        )
+
+    app.state.graph = build_graph(create_llm(), tools=[index_folder])
     app.state.agent_state = {
         "messages": [],
         "working_folder": None,
@@ -207,7 +243,10 @@ async def lifespan(app: FastAPI):
         "indexed": False,
     }
     app.state.state_lock = asyncio.Lock()
-    yield
+    try:
+        yield
+    finally:
+        await app.state.qdrant_client.close()
 
 
 app = FastAPI(title="Test Agent", lifespan=lifespan)
